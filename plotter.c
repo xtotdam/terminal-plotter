@@ -1,21 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+#include "plotter.h"
 
-#define BG 					' '
-#define POINT 				0xdb
-#define BAR 				0xb3
-#define TOP_END_OF_BAR 		0xc2
-// #define TOP_END_OF_BAR 		0xd1	// double bar
-#define BOTTOM_END_OF_BAR 	0xc1
-// #define BOTTOM_END_OF_BAR 	0xcf	// double bar
-#define LINE_POINT 			'.'
+void d_show1darray(double*, int);
+void i_show1darray(int*, int);
+void show2darray(int**, int, int);
 
-#define LINES 				25
-#define COLUMNS 			80
+int plot(int, double*, double*, double*, double*, double, double, bool);
 
-#define XTICKS_NUM			9
-#define YTICKS_NUM			5
 
 void d_show1darray(double arr[], int xm)
 {
@@ -27,6 +17,7 @@ void d_show1darray(double arr[], int xm)
 	printf("\n");
 }
 
+
 void i_show1darray(int arr[], int xm)
 {
 	int i;
@@ -36,6 +27,7 @@ void i_show1darray(int arr[], int xm)
 	}
 	printf("\n");
 }
+
 
 void show2darray(int **arr, int xm, int ym)
 {
@@ -50,16 +42,29 @@ void show2darray(int **arr, int xm, int ym)
 	}
 }
 
-int plot(int num, double *xs, double *ys, double *dys, double line_a, double line_b)
+
+int plot(int num, double *xs, double *ys, double *dys_up, double *dys_dn, double line_a, double line_b, bool plot_errors)
 {
+	/**
+	@param num length of arrays
+	@param xs X coordinates of points
+	@param ys Y coordinates of points
+	@param dys_up upper Y coordinates' errors
+	@param dys_dn lower Y coordinates' errors
+	@param line_a line slope
+	@param line_b line intercept
+	@param plot_errors if we should plot errors
+	*/
+
 	int lines = LINES,
 	    cols = COLUMNS - 1;
 	int i, j;
 
-	int **field = (int**)malloc(lines * sizeof(int*));
+	/// allocating space for canvas
+	int **field = (int**)calloc(lines, sizeof(int*));
 	for (i = 0; i < lines; i++)
 	{
-		field[i] = (int*)malloc(cols * sizeof(int));
+		field[i] = (int*)calloc(cols, sizeof(int));
 
 		for (j = 0; j < cols; j++)
 		{
@@ -67,19 +72,19 @@ int plot(int num, double *xs, double *ys, double *dys, double line_a, double lin
 		}
 	}
 
-	char *xaxes = (char*)malloc((cols + 1) * sizeof(char));
+	/// allocating space for X-axis
+	char *xaxes = (char*)calloc((cols + 1), sizeof(char));
 	for (j = 0; j < cols; j++)
 	{
 		xaxes[j] = BG;
 	}
 	xaxes[cols] = '\0';
-	// show2darray(field, lines, cols);
 
-// find edges of axes
+	/// find edges of axes
 	double minx = xs[0],
 	       maxx = xs[0],
-	       miny = ys[0] - dys[0],
-	       maxy = ys[0] + dys[0];
+	       miny = ys[0] - dys_dn[0],
+	       maxy = ys[0] + dys_up[0];
 
 	if (num < 2)
 	{
@@ -90,23 +95,23 @@ int plot(int num, double *xs, double *ys, double *dys, double line_a, double lin
 	{
 		if (xs[i] < minx) { minx = xs[i]; }
 		if (xs[i] > maxx) { maxx = xs[i]; }
-		if (ys[i] - dys[i] < miny) { miny = ys[i] - dys[i]; }
-		if (ys[i] + dys[i] > maxy) { maxy = ys[i] + dys[i]; }
+		if (ys[i] - dys_dn[i] < miny) { miny = ys[i] - dys_dn[i]; }
+		if (ys[i] + dys_up[i] > maxy) { maxy = ys[i] + dys_up[i]; }
 	}
 
 	if (line_a * minx + line_b < miny) { miny = line_a * minx + line_b; }
 	if (line_a * maxx + line_b > maxy) { maxy = line_a * maxx + line_b; }
 
-// create ticks
+	/// create ticks
 	int xticksnum = XTICKS_NUM,
 	    yticksnum = YTICKS_NUM;
-	double *xticks = (double*)malloc(xticksnum * sizeof(double));
-	double *yticks = (double*)malloc(yticksnum * sizeof(double));
+	double *xticks = (double*)calloc(xticksnum, sizeof(double));
+	double *yticks = (double*)calloc(yticksnum, sizeof(double));
 	double dx = maxx - minx,
 	       dy = maxy - miny;
 	char tempstr[100];
-	int *xplaces = (int*)malloc(xticksnum * sizeof(int));
-	int *yplaces = (int*)malloc(yticksnum * sizeof(int));
+	int *xplaces = (int*)calloc(xticksnum, sizeof(int));
+	int *yplaces = (int*)calloc(yticksnum, sizeof(int));
 
 	for (i = 0; i < xticksnum; i++)
 	{
@@ -124,12 +129,12 @@ int plot(int num, double *xs, double *ys, double *dys, double line_a, double lin
 	// i_show1darray(xplaces, xticksnum);
 	// i_show1darray(yplaces, yticksnum);
 
-// create axis
+	/// create axis
 	int chars;
 
 	for (i = 0; i < yticksnum; i++)
 	{
-		chars = sprintf(tempstr, "%g", yticks[i]);
+		chars = sprintf(tempstr, "%.4g", yticks[i]);
 		for (j = 0; j < chars; j++)
 		{
 			// printf("%d  ", lines - yplaces[i]);
@@ -139,21 +144,21 @@ int plot(int num, double *xs, double *ys, double *dys, double line_a, double lin
 
 	for (i = 0; i < xticksnum - 1; i++)
 	{
-		chars = sprintf(tempstr, "%g", xticks[i]);
+		chars = sprintf(tempstr, "%.4g", xticks[i]);
 		for (j = 0; j < chars; j++)
 		{
 			xaxes[xplaces[i] + j] = tempstr[j];
 		}
 	}
 
-	// last tick -- margin from right
-	chars = sprintf(tempstr, "%g", xticks[xticksnum - 1]);
+	/// last tick -- should be printed with margin from right
+	chars = sprintf(tempstr, "%.2g", xticks[xticksnum - 1]);
 	for (j = 0; j < chars; j++)
 	{
 		xaxes[xplaces[xticksnum - 1] + j - chars + 1] = tempstr[j];
 	}
 
-// line
+	/// line
 	double x, y;
 	int xcoord, ycoord;
 
@@ -166,40 +171,43 @@ int plot(int num, double *xs, double *ys, double *dys, double line_a, double lin
 		field[lines - ycoord - 1][xcoord] = LINE_POINT;
 	}
 
-// errors
-	int ycoord1;
-
-	for (i = 0; i < num; i++)
+	if (plot_errors)
 	{
-		x = xs[i];
-		xcoord = floor((x - minx) / dx * (cols - 1));
-		y = ys[i];
-		ycoord1 = floor((y - miny) / dy * (lines - 1));
+		/// errors
+		int ycoord1;
 
-		y = ys[i] - dys[i];
-		ycoord = floor((y - miny) / dy * (lines - 1));
-		if (ycoord != ycoord1)
+		for (i = 0; i < num; i++)
 		{
-			for (j = ycoord; j < ycoord1; j++)
-			{
-				field[lines - j - 1][xcoord] = BAR;
-			}
-		}
-		field[lines - ycoord - 1][xcoord] = BOTTOM_END_OF_BAR;
+			x = xs[i];
+			xcoord = floor((x - minx) / dx * (cols - 1));
+			y = ys[i];
+			ycoord1 = floor((y - miny) / dy * (lines - 1));
 
-		y = ys[i] + dys[i];
-		ycoord = floor((y - miny) / dy * (lines - 1));
-		if (ycoord != ycoord1)
-		{
-			for (j = ycoord1; j < ycoord; j++)
+			y = ys[i] - dys_dn[i];
+			ycoord = floor((y - miny) / dy * (lines - 1));
+			if (ycoord != ycoord1)
 			{
-				field[lines - j - 1][xcoord] = BAR;
+				for (j = ycoord; j < ycoord1; j++)
+				{
+					field[lines - j - 1][xcoord] = BAR;
+				}
 			}
+			field[lines - ycoord - 1][xcoord] = BOTTOM_END_OF_BAR;
+
+			y = ys[i] + dys_up[i];
+			ycoord = floor((y - miny) / dy * (lines - 1));
+			if (ycoord != ycoord1)
+			{
+				for (j = ycoord1; j < ycoord; j++)
+				{
+					field[lines - j - 1][xcoord] = BAR;
+				}
+			}
+			field[lines - ycoord - 1][xcoord] = TOP_END_OF_BAR;
 		}
-		field[lines - ycoord - 1][xcoord] = TOP_END_OF_BAR;
 	}
 
-// points
+	/// points
 	for (i = 0; i < num; i++)
 	{
 		x = xs[i];
@@ -210,16 +218,17 @@ int plot(int num, double *xs, double *ys, double *dys, double line_a, double lin
 		field[lines - ycoord - 1][xcoord] = POINT;
 	}
 
-// output
+	/// output
 
 	// d_show1darray(xs, num);
 	// d_show1darray(ys, num);
 	// d_show1darray(dys, num);
-	printf("Plot borders: X [%.3lf : %.3lf] ; Y [%.3lf : %.3lf]\n", minx, maxx, miny, maxy);
+	printf("Plot borders are X: from %.6g to %.6g; Y: from %.6g to %.6g\n", minx, maxx, miny, maxy);
 	show2darray(field, lines, cols);
 	printf("%s\n", xaxes);
+	fflush(stdout);
 
-// freeing memory
+	/// freeing memory
 	free(xaxes);
 	free(xticks);
 	free(yticks);
@@ -230,20 +239,6 @@ int plot(int num, double *xs, double *ys, double *dys, double line_a, double lin
 		free(field[i]);
 	}
 	free(field);
-
-	return 0;
-}
-
-int main(int argc, char const *argv[])
-{
-// data
-	int num = 6;
-	double xs[] = {1., 2., 4., 5., 6., 3.,};
-	double ys[] = {1., 3., 6., 8., 10., 10.};
-	double dys[] = {0.2, 0.3, 1., 0.7, 0.4, 2.};
-	double line_a = 1.76, line_b = -0.7;
-
-	plot(num, xs, ys, dys, line_a, line_b);
 
 	return 0;
 }

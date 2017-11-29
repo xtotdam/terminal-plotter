@@ -1,14 +1,19 @@
 GCC=gcc
 FLAGS=
 ARGS=-lm -O0 -g -Wall
-# ARGS=-lm -O2 -Wall
-SRC=main.c
+SRC=plotter.c plotter-showcase.c
+EXE=plotter
 
-all: clean main
+.phony: all clean main docs
+
+all: main
 
 main:
-	$(GCC) $(FLAGS) -o main $(SRC) $(ARGS)
+	$(GCC) $(FLAGS) -o $(EXE) $(SRC) $(ARGS)
+
+docs:
+	doxygen Doxyfile
 
 clean:
-	rm -f main
-	rm -f main.exe
+	rm -vf $(EXE)
+	rm -vf $(EXE).exe

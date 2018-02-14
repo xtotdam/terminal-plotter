@@ -4,6 +4,7 @@ void d_show1darray(double*, int);
 void i_show1darray(int*, int);
 void show2darray(int**, int, int);
 
+int plot_without_errors(int, double *, double *, double, double);
 int plot(int, double*, double*, double*, double*, double, double, bool);
 
 
@@ -40,6 +41,26 @@ void show2darray(int **arr, int xm, int ym)
 		}
 		printf("\n");
 	}
+}
+
+
+int plot_without_errors(int num, double *xs, double *ys, double line_a, double line_b)
+{
+	int i;
+	double *dy_up = (double*)calloc(num, sizeof(double));
+	double *dy_dn = (double*)calloc(num, sizeof(double));
+
+	for (i = 0; i < num; i++)
+	{
+		dy_up[i] = 0.01;
+		dy_dn[i] = 0.01;
+	}
+	plot(num, xs, ys, dy_up, dy_dn, line_a, line_b, false);
+
+	free(dy_up);
+	free(dy_dn);
+
+	return 0;
 }
 
 

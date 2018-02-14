@@ -37,6 +37,7 @@
 #define YTICKS_NUM			5		///< number of Y-axis ticks
 
 
+extern int plot_without_errors(int, double *, double *, double, double);
 extern int plot(int, double*, double*, double*, double*, double, double, bool);
 
 #endif
